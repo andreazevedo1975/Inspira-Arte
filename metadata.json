@@ -1,0 +1,5 @@
+{
+  "name": "Inspira Arte: Gerador de Imagens Positivas",
+  "description": "Uma aplicação que gera uma imagem visualmente atraente e de alta qualidade contendo uma frase positiva (citação ou aforismo) perfeitamente alinhada com o tema fornecido pelo usuário.",
+  "requestFramePermissions": []
+}
