@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { SparklesIcon } from './icons/SparklesIcon';
 import type { GeneratePayload } from '../types';
@@ -14,12 +15,52 @@ const inspirationalThemes = [
   'Felicidade', 'Paz', 'Superação', 'Amor', 'Liberdade', 'Inspiração'
 ];
 
+interface FormatOption {
+    id: string;
+    label: string;
+    ratio: string;
+    description: string;
+    icon: React.ReactNode;
+}
+
+const formatOptions: FormatOption[] = [
+    { 
+        id: 'square', 
+        label: 'Quadrado (1:1)', 
+        ratio: '1:1', 
+        description: 'Instagram Feed, Facebook, LinkedIn',
+        icon: <div className="w-4 h-4 border-2 border-current rounded-sm" />
+    },
+    { 
+        id: 'story', 
+        label: 'Story / Reels (9:16)', 
+        ratio: '9:16', 
+        description: 'Instagram Stories, TikTok, YouTube Shorts',
+        icon: <div className="w-3 h-5 border-2 border-current rounded-sm" />
+    },
+    { 
+        id: 'portrait', 
+        label: 'Retrato (3:4)', 
+        ratio: '3:4', 
+        description: 'Instagram Portrait, Pinterest',
+        icon: <div className="w-3 h-4 border-2 border-current rounded-sm" />
+    },
+    { 
+        id: 'landscape', 
+        label: 'Paisagem (16:9)', 
+        ratio: '16:9', 
+        description: 'Facebook Post, LinkedIn, YouTube',
+        icon: <div className="w-5 h-3 border-2 border-current rounded-sm" />
+    }
+];
+
 export const ThemeInputForm: React.FC<ThemeInputFormProps> = ({ onGenerate, isLoading }) => {
   const [mode, setMode] = useState<Mode>('theme');
   const [theme, setTheme] = useState('');
   const [prompt, setPrompt] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [selectedRatio, setSelectedRatio] = useState<string>('1:1');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +68,13 @@ export const ThemeInputForm: React.FC<ThemeInputFormProps> = ({ onGenerate, isLo
 
     switch (mode) {
       case 'theme':
-        if (theme.trim()) onGenerate({ mode, value: theme });
+        if (theme.trim()) onGenerate({ mode, value: theme, aspectRatio: selectedRatio });
         break;
       case 'prompt':
-        if (prompt.trim()) onGenerate({ mode, value: prompt });
+        if (prompt.trim()) onGenerate({ mode, value: prompt, aspectRatio: selectedRatio });
         break;
       case 'upload':
-        if (file) onGenerate({ mode, value: file });
+        if (file) onGenerate({ mode, value: file, aspectRatio: selectedRatio });
         break;
     }
   };
@@ -42,7 +83,7 @@ export const ThemeInputForm: React.FC<ThemeInputFormProps> = ({ onGenerate, isLo
     const randomTheme = inspirationalThemes[Math.floor(Math.random() * inspirationalThemes.length)];
     setTheme(randomTheme);
     setMode('theme');
-    onGenerate({ mode: 'theme', value: randomTheme });
+    onGenerate({ mode: 'theme', value: randomTheme, aspectRatio: selectedRatio });
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +158,6 @@ export const ThemeInputForm: React.FC<ThemeInputFormProps> = ({ onGenerate, isLo
                         <p className="mb-2 text-sm text-gray-400"><span className="font-semibold">Clique para enviar</span> ou arraste e solte</p>
                         <p className="text-xs text-gray-500">PNG, JPG, WEBP (MAX. 4MB)</p>
                     </div>
-                    {/* Fix: Corrected typo in function name from handleFilechange to handleFileChange */}
                     <input id="image-upload-input-main" type="file" className="sr-only" onChange={handleFileChange} accept="image/png, image/jpeg, image/webp" disabled={isLoading} />
                 </label>
                 {file && <p className="text-sm text-gray-300 mt-2">Arquivo selecionado: <span className="font-medium">{file.name}</span></p>}
@@ -125,7 +165,33 @@ export const ThemeInputForm: React.FC<ThemeInputFormProps> = ({ onGenerate, isLo
             </div>
         )}
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        {/* Aspect Ratio Selector - Always visible now */}
+        <div className="space-y-2 pt-2">
+            <label className="text-sm text-gray-400 font-medium ml-1">Formato para Redes Sociais</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {formatOptions.map((option) => (
+                    <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setSelectedRatio(option.ratio)}
+                        disabled={isLoading}
+                        className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-200 ${
+                            selectedRatio === option.ratio
+                                ? 'bg-purple-900/40 border-purple-500 text-purple-300 shadow-sm'
+                                : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750 hover:border-gray-600'
+                        }`}
+                    >
+                        <div className="mb-1.5 opacity-80">{option.icon}</div>
+                        <span className="text-xs font-semibold">{option.label}</span>
+                        <span className="text-[10px] opacity-60 mt-0.5 text-center leading-tight hidden sm:block">
+                            {option.description}
+                        </span>
+                    </button>
+                ))}
+            </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
             <button
             type="submit"
             disabled={isSubmitDisabled()}

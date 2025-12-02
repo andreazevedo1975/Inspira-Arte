@@ -38,6 +38,8 @@ const App: React.FC = () => {
     setError(null);
     setResult(null);
 
+    const selectedAspectRatio = payload.aspectRatio || '1:1';
+
     try {
         let promptText = '';
         let imageBase64 = '';
@@ -64,9 +66,9 @@ const App: React.FC = () => {
             }
             
             // Show prompt while image generates
-            setResult({ quote: '', imagePrompt: promptText, imageUrl: '', isLoadingQuote: true });
+            setResult({ quote: '', imagePrompt: promptText, imageUrl: '', isLoadingQuote: true, aspectRatio: selectedAspectRatio });
 
-            imageBase64 = await generateImage(promptText);
+            imageBase64 = await generateImage(promptText, selectedAspectRatio);
             imageUrl = `data:${mimeType};base64,${imageBase64}`;
         }
 
@@ -76,6 +78,7 @@ const App: React.FC = () => {
             imagePrompt: promptText,
             imageUrl: imageUrl,
             isLoadingQuote: true,
+            aspectRatio: selectedAspectRatio,
         });
 
         // Step 3: Generate quote from the image
@@ -111,7 +114,7 @@ const App: React.FC = () => {
         isLoadingMascot: true,
       });
 
-      const mascotImageUrl = await generateImage(payload.mascotPrompt);
+      const mascotImageUrl = await generateImage(payload.mascotPrompt, '1:1'); // Mascots default to 1:1
 
       setVisualIdentityResult(prev => {
         if (!prev) return null;

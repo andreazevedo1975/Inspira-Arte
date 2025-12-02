@@ -43,7 +43,7 @@ export const generateQuoteFromImage = async (base64Image: string, mimeType: stri
 };
 
 
-export const generateImage = async (prompt: string): Promise<string> => {
+export const generateImage = async (prompt: string, aspectRatio: string = '16:9'): Promise<string> => {
   try {
     const response = await ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
@@ -51,7 +51,7 @@ export const generateImage = async (prompt: string): Promise<string> => {
         config: {
           numberOfImages: 1,
           outputMimeType: 'image/jpeg',
-          aspectRatio: '16:9',
+          aspectRatio: aspectRatio,
         },
     });
 
@@ -63,6 +63,29 @@ export const generateImage = async (prompt: string): Promise<string> => {
   } catch (error) {
     console.error("Erro ao gerar imagem:", error);
     throw new Error("Não foi possível gerar a imagem.");
+  }
+};
+
+export const generateImageVariations = async (prompt: string, aspectRatio: string = '1:1'): Promise<string[]> => {
+  try {
+    const response = await ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: prompt,
+        config: {
+          numberOfImages: 3, // Request 3 variations
+          outputMimeType: 'image/jpeg',
+          aspectRatio: aspectRatio,
+        },
+    });
+
+    if (response.generatedImages && response.generatedImages.length > 0) {
+        return response.generatedImages.map(img => `data:image/jpeg;base64,${img.image.imageBytes}`);
+    } else {
+        throw new Error("Nenhuma variação foi gerada.");
+    }
+  } catch (error) {
+    console.error("Erro ao gerar variações:", error);
+    throw new Error("Não foi possível gerar variações.");
   }
 };
 

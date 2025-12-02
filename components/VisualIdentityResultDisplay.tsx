@@ -26,6 +26,14 @@ const FileTextIcon = () => (
   </svg>
 );
 
+const RefreshIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 4v6h-6"></path>
+    <path d="M1 20v-6h6"></path>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+  </svg>
+);
+
 interface MascotStyle {
     scale: number;
     rotation: number;
@@ -38,6 +46,10 @@ export const VisualIdentityResultDisplay: React.FC<VisualIdentityResultDisplayPr
       rotation: 0,
       isBouncing: false,
   });
+
+  const resetMascotStyle = () => {
+    setMascotStyle({ scale: 1, rotation: 0, isBouncing: false });
+  };
 
   const handleExport = () => {
     if (!result) return;
@@ -100,8 +112,8 @@ Gerado por Inspira Arte
               {result.isLoadingMascot ? (
                 <LoadingSpinner text="Criando mascote..." />
               ) : (
-                /* Wrapper handles the continuous loop animations (Idle or Float/Bounce) */
-                <div className={`w-full h-full flex items-center justify-center transition-all duration-500 ${mascotStyle.isBouncing ? 'animate-float' : 'animate-idle'}`}>
+                /* Wrapper handles the continuous loop animations (Idle or Pulse) */
+                <div className={`w-full h-full flex items-center justify-center transition-all duration-500 ${mascotStyle.isBouncing ? 'animate-pulse-bounce' : 'animate-idle'}`}>
                    {/* Image handles the user transforms (Scale/Rotate) and entrance animation */}
                     <img 
                       src={result.mascotImageUrl} 
@@ -117,40 +129,62 @@ Gerado por Inspira Arte
 
             {/* Mascot Customization Controls */}
             {!result.isLoadingMascot && (
-                <div className="bg-gray-900/50 p-2 rounded-lg border border-gray-600 flex flex-col gap-2 mt-1">
-                    {/* Bounce Toggle */}
-                    <button
-                        onClick={() => setMascotStyle(prev => ({ ...prev, isBouncing: !prev.isBouncing }))}
-                        className={`text-xs font-medium py-1 px-2 rounded transition-colors flex items-center justify-center gap-1 ${mascotStyle.isBouncing ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                    >
-                        {mascotStyle.isBouncing ? '✨ Animado' : '⚡ Animar'}
-                    </button>
-
-                    {/* Scale Slider */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-400 w-4">Tam</span>
-                        <input
-                            type="range"
-                            min="0.5"
-                            max="1.5"
-                            step="0.1"
-                            value={mascotStyle.scale}
-                            onChange={(e) => setMascotStyle(prev => ({ ...prev, scale: parseFloat(e.target.value) }))}
-                            className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                        />
+                <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-600 flex flex-col gap-3 mt-1">
+                    <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                        <h4 className="text-xs font-semibold text-gray-300">Personalizar Mascote</h4>
+                         <button
+                            onClick={resetMascotStyle}
+                            title="Resetar ajustes"
+                            className="text-gray-500 hover:text-white transition-colors"
+                        >
+                            <RefreshIcon />
+                        </button>
                     </div>
 
-                    {/* Rotation Slider */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-400 w-4">Rot</span>
-                        <input
-                            type="range"
-                            min="-45"
-                            max="45"
-                            value={mascotStyle.rotation}
-                            onChange={(e) => setMascotStyle(prev => ({ ...prev, rotation: parseInt(e.target.value) }))}
-                            className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                        />
+                    {/* Bounce Toggle */}
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-400">Animação</span>
+                        <button
+                            onClick={() => setMascotStyle(prev => ({ ...prev, isBouncing: !prev.isBouncing }))}
+                            className={`text-xs font-medium py-1 px-3 rounded-full transition-all duration-300 border ${
+                                mascotStyle.isBouncing 
+                                ? 'bg-purple-600 border-purple-500 text-white shadow-[0_0_10px_rgba(147,51,234,0.4)]' 
+                                : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700'
+                            }`}
+                        >
+                            {mascotStyle.isBouncing ? 'Pulso Ativo' : 'Suave'}
+                        </button>
+                    </div>
+
+                    <div className="space-y-2">
+                        {/* Scale Slider */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-400 w-6 font-mono">Escala</span>
+                            <input
+                                type="range"
+                                min="0.5"
+                                max="1.5"
+                                step="0.05"
+                                value={mascotStyle.scale}
+                                onChange={(e) => setMascotStyle(prev => ({ ...prev, scale: parseFloat(e.target.value) }))}
+                                className="flex-1 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                            />
+                            <span className="text-[10px] text-gray-500 w-6 text-right">{mascotStyle.scale.toFixed(1)}x</span>
+                        </div>
+
+                        {/* Rotation Slider */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-400 w-6 font-mono">Giro</span>
+                            <input
+                                type="range"
+                                min="-45"
+                                max="45"
+                                value={mascotStyle.rotation}
+                                onChange={(e) => setMascotStyle(prev => ({ ...prev, rotation: parseInt(e.target.value) }))}
+                                className="flex-1 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                            />
+                             <span className="text-[10px] text-gray-500 w-6 text-right">{mascotStyle.rotation}°</span>
+                        </div>
                     </div>
                 </div>
             )}
@@ -215,13 +249,13 @@ Gerado por Inspira Arte
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        @keyframes pulseBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
         }
         @keyframes idle {
             0%, 100% { transform: scale(1); filter: brightness(1); }
-            50% { transform: scale(1.03); filter: brightness(1.08); } 
+            50% { transform: scale(1.02); filter: brightness(1.05); } 
         }
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
@@ -229,8 +263,8 @@ Gerado por Inspira Arte
         .animate-scale-in {
             animation: scaleIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
-        .animate-float {
-            animation: float 3s ease-in-out infinite;
+        .animate-pulse-bounce {
+            animation: pulseBounce 1.5s ease-in-out infinite;
         }
         .animate-idle {
             animation: idle 4s ease-in-out infinite;

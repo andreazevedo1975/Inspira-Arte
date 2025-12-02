@@ -7,6 +7,7 @@ export interface QuoteAndPrompt {
 export interface GenerationResult extends QuoteAndPrompt {
   imageUrl: string;
   isLoadingQuote: boolean;
+  aspectRatio?: string; // Added to track the selected format
 }
 
 export interface VisualIdentityPayload {
@@ -29,4 +30,5 @@ export interface VisualIdentityResult extends VisualIdentityPayload {
 export interface GeneratePayload {
     mode: 'theme' | 'prompt' | 'upload';
     value: string | File;
+    aspectRatio?: string;
 }
