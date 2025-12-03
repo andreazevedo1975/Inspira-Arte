@@ -9,13 +9,14 @@ if (!process.env.API_KEY) {
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateImagePromptFromTheme = async (theme: string): Promise<string> => {
+    // UPDATED: Removed instruction to include text inside the image. This reduces "Responsible AI" blocks.
     const systemInstruction = `Your task is to create a detailed, high-quality image prompt in ENGLISH based on a single theme word or phrase provided in Portuguese. The prompt should be for an advanced AI image generator (like Imagen).
 It must include:
 - A central concept that metaphorically represents the theme.
 - A specific visual style (e.g., Photography, Digital Painting, Watercolor, Cinematic).
 - A color palette that matches the theme's mood.
-- Instructions to include a short, inspirational phrase related to the theme, artistically integrated into the image. The phrase must be in PORTUGUESE.
 - Quality keywords like "ultra detailed, 8k, volumetric lighting, cinematic lighting, photorealistic".
+- DO NOT ask for text, words, or letters to be written in the image. The image should be purely visual.
 Return ONLY the prompt text, without any other explanation or markdown.`;
 
     const response = await ai.models.generateContent({
@@ -52,6 +53,13 @@ export const generateImage = async (prompt: string, aspectRatio: string = '16:9'
           numberOfImages: 1,
           outputMimeType: 'image/jpeg',
           aspectRatio: aspectRatio,
+          // @ts-ignore - safetySettings are supported by the API but might not be in the strict type definition yet
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
+          ]
         },
     });
 
@@ -62,7 +70,7 @@ export const generateImage = async (prompt: string, aspectRatio: string = '16:9'
     }
   } catch (error) {
     console.error("Erro ao gerar imagem:", error);
-    throw new Error("Não foi possível gerar a imagem.");
+    throw new Error("Não foi possível gerar a imagem. Tente um tema diferente.");
   }
 };
 
@@ -75,6 +83,13 @@ export const generateImageVariations = async (prompt: string, aspectRatio: strin
           numberOfImages: 3, // Request 3 variations
           outputMimeType: 'image/jpeg',
           aspectRatio: aspectRatio,
+          // @ts-ignore
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
+          ]
         },
     });
 
@@ -85,7 +100,7 @@ export const generateImageVariations = async (prompt: string, aspectRatio: strin
     }
   } catch (error) {
     console.error("Erro ao gerar variações:", error);
-    throw new Error("Não foi possível gerar variações.");
+    throw new Error("Não foi possível gerar variações. O conteúdo pode ter sido filtrado.");
   }
 };
 
