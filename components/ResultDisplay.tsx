@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { GenerationResult } from '../types';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -17,6 +18,8 @@ interface CustomizationState {
   color: string;
   textAlign: 'left' | 'center' | 'right';
   textShadow: boolean;
+  textOutlineColor: string;
+  textOutlineWidth: number;
   overlayColor: string;
   overlayOpacity: number;
   verticalPosition: number; // 0 to 100%
@@ -120,6 +123,8 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, isLoading,
         color: '#ffffff',
         textAlign: 'center',
         textShadow: true,
+        textOutlineColor: '#000000',
+        textOutlineWidth: 0,
         overlayColor: '#000000',
         overlayOpacity: 0.3,
         verticalPosition: 50,
@@ -312,6 +317,10 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, isLoading,
                                 color: customization.color,
                                 textAlign: customization.textAlign,
                                 textShadow: customization.textShadow ? '2px 2px 4px rgba(0,0,0,0.9)' : 'none',
+                                WebkitTextStroke: customization.textOutlineWidth > 0 
+                                    ? `${customization.textOutlineWidth}px ${customization.textOutlineColor}` 
+                                    : 'none',
+                                paintOrder: 'stroke fill', // Ensures the stroke doesn't consume the text
                                 whiteSpace: 'pre-wrap',
                                 width: '100%',
                                 padding: '0 3rem', // Add horizontal padding to prevent text touching edges
@@ -434,6 +443,21 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, isLoading,
                             </label>
                         </div>
                         
+                        {/* Quote Text Input - Moved Here */}
+                        <div className="mb-4">
+                             {result.isLoadingQuote ? (
+                                <div className="text-sm text-gray-400 italic animate-pulse">Gerando frase...</div>
+                            ) : (
+                                <textarea
+                                    value={result.quote}
+                                    onChange={(e) => onQuoteChange(e.target.value)}
+                                    rows={2}
+                                    className="w-full bg-gray-800 text-gray-200 text-sm p-2 rounded border border-gray-600 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 resize-y placeholder-gray-500"
+                                    placeholder="Digite sua frase aqui..."
+                                />
+                            )}
+                        </div>
+
                         <div className="grid grid-cols-2 gap-3">
                             {/* Font Family Custom Dropdown */}
                             <div className="col-span-2 sm:col-span-1 relative" ref={fontDropdownRef}>
@@ -533,6 +557,34 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, isLoading,
                                 </div>
                             </div>
 
+                            {/* Text Outline (Contorno) */}
+                            <div className="col-span-2 sm:col-span-1">
+                                <label className="text-xs text-gray-400 block mb-1 flex justify-between">
+                                    <span>Contorno</span>
+                                    <span>{customization.textOutlineWidth > 0 ? `${customization.textOutlineWidth}px` : 'Off'}</span>
+                                </label>
+                                <div className="flex items-center gap-2 h-8">
+                                    <div className="relative overflow-hidden w-8 h-8 rounded border border-gray-600 flex-shrink-0">
+                                        <input
+                                            type="color"
+                                            value={customization.textOutlineColor}
+                                            onChange={(e) => setCustomization(prev => ({ ...prev, textOutlineColor: e.target.value }))}
+                                            className="absolute -top-2 -left-2 w-12 h-12 cursor-pointer p-0 border-0"
+                                        />
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="8"
+                                        step="0.5"
+                                        value={customization.textOutlineWidth}
+                                        onChange={(e) => setCustomization(prev => ({ ...prev, textOutlineWidth: Number(e.target.value) }))}
+                                        className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                        title="Espessura do contorno"
+                                    />
+                                </div>
+                            </div>
+
                             {/* Alignment (Horizontal) */}
                             <div className="col-span-2 sm:col-span-1">
                                 <label className="text-xs text-gray-400 block mb-1">Alinhamento</label>
@@ -552,12 +604,12 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, isLoading,
                             </div>
 
                             {/* Vertical Position */}
-                            <div className="col-span-2">
+                            <div className="col-span-2 sm:col-span-1">
                                 <label className="text-xs text-gray-400 block mb-1 flex justify-between">
                                     <span>Posição Vertical</span>
                                     <span>{Math.round(customization.verticalPosition)}%</span>
                                 </label>
-                                <div className="flex gap-2 items-center">
+                                <div className="flex gap-2 items-center h-8">
                                     {/* Quick Presets */}
                                     <div className="flex bg-gray-800 rounded-md border border-gray-600 p-0.5 h-8 shrink-0">
                                         <button 
@@ -666,34 +718,12 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, isLoading,
                     </div>
                 </div>
 
-                {/* Quote and Prompt Editors */}
-                <div className="grid md:grid-cols-2 gap-6">
-                    {/* Quote Editor */}
-                    <div className="bg-gray-900/70 p-4 rounded-lg border border-gray-600 flex flex-col">
-                        <label htmlFor="quote-editor" className="text-sm font-semibold text-purple-400 mb-2 block">
-                        Editar Frase
-                        </label>
-                        {result.isLoadingQuote ? (
-                            <LoadingSpinner text="Analisando a imagem para criar a frase..." />
-                        ) : (
-                            <textarea
-                            id="quote-editor"
-                            value={result.quote}
-                            onChange={(e) => onQuoteChange(e.target.value)}
-                            rows={3}
-                            className="w-full flex-grow bg-transparent text-xl italic text-gray-200 p-1 border-0 focus:ring-2 focus:ring-purple-500 rounded-md resize-none transition-all placeholder-gray-600"
-                            placeholder="Sua frase aparecerá aqui..."
-                            />
-                        )}
-                    </div>
-
-                    {/* Image Prompt Display */}
-                    <div className="bg-gray-900/70 p-4 rounded-lg border border-gray-600">
-                        <h3 className="text-sm font-semibold text-pink-400 mb-2">Prompt de Imagem</h3>
-                        <p className="text-sm text-gray-400 font-mono bg-black/30 p-3 rounded-md break-words h-full max-h-40 overflow-y-auto custom-scrollbar">
-                            {result.imagePrompt}
-                        </p>
-                    </div>
+                {/* Prompt Display (Quote Editor moved up) */}
+                <div className="bg-gray-900/70 p-4 rounded-lg border border-gray-600 w-full">
+                    <h3 className="text-sm font-semibold text-pink-400 mb-2">Prompt de Imagem</h3>
+                    <p className="text-sm text-gray-400 font-mono bg-black/30 p-3 rounded-md break-words h-full max-h-40 overflow-y-auto custom-scrollbar">
+                        {result.imagePrompt}
+                    </p>
                 </div>
             </div>
         )}

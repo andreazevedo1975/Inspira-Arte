@@ -112,17 +112,20 @@ Gerado por Inspira Arte
               {result.isLoadingMascot ? (
                 <LoadingSpinner text="Criando mascote..." />
               ) : (
-                /* Wrapper handles the continuous loop animations (Idle or Pulse) */
-                <div className={`w-full h-full flex items-center justify-center transition-all duration-500 ${mascotStyle.isBouncing ? 'animate-pulse-bounce' : 'animate-idle'}`}>
-                   {/* Image handles the user transforms (Scale/Rotate) and entrance animation */}
-                    <img 
-                      src={result.mascotImageUrl} 
-                      alt="Mascote gerado" 
-                      style={{
-                          transform: `scale(${mascotStyle.scale}) rotate(${mascotStyle.rotation}deg)`,
-                      }}
-                      className="object-cover w-full h-full transition-transform duration-300 ease-out animate-scale-in" 
-                    />
+                /* Wrapper 1: Entrance Animation */
+                <div className="w-full h-full flex items-center justify-center animate-scale-in">
+                    {/* Wrapper 2: Continuous Loop Animation (Pulse/Idle) */}
+                    <div className={`w-full h-full flex items-center justify-center transition-all duration-500 ${mascotStyle.isBouncing ? 'animate-pulse-bounce' : 'animate-idle'}`}>
+                        {/* Image: User Transforms (Scale/Rotate) */}
+                        <img 
+                        src={result.mascotImageUrl} 
+                        alt="Mascote gerado" 
+                        style={{
+                            transform: `scale(${mascotStyle.scale}) rotate(${mascotStyle.rotation}deg)`,
+                        }}
+                        className="object-cover w-full h-full transition-transform duration-300 ease-out" 
+                        />
+                    </div>
                 </div>
               )}
             </div>
@@ -226,7 +229,7 @@ Gerado por Inspira Arte
           
           <button
             onClick={handleExport}
-            className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 font-medium rounded-lg transition-colors border border-gray-600 hover:border-gray-500"
+            className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg shadow-md transition-all duration-200 transform hover:-translate-y-0.5 border border-transparent"
           >
             <FileTextIcon />
             Exportar Identidade (TXT)
@@ -254,8 +257,8 @@ Gerado por Inspira Arte
             50% { transform: scale(1.08); }
         }
         @keyframes idle {
-            0%, 100% { transform: scale(1); filter: brightness(1); }
-            50% { transform: scale(1.02); filter: brightness(1.05); } 
+            0%, 100% { transform: translateY(0) scale(1); filter: brightness(1); }
+            50% { transform: translateY(-4px) scale(1.02); filter: brightness(1.05); } 
         }
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
@@ -267,7 +270,7 @@ Gerado por Inspira Arte
             animation: pulseBounce 1.5s ease-in-out infinite;
         }
         .animate-idle {
-            animation: idle 4s ease-in-out infinite;
+            animation: idle 5s ease-in-out infinite;
         }
       `}</style>
     </div>

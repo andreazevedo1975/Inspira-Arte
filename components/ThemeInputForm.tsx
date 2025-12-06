@@ -68,7 +68,9 @@ export const ThemeInputForm: React.FC<ThemeInputFormProps> = ({ onGenerate, isLo
 
     switch (mode) {
       case 'theme':
-        if (theme.trim()) onGenerate({ mode, value: theme, aspectRatio: selectedRatio });
+        // Changing payload mode to 'prompt' here to bypass generateImagePromptFromTheme in App.tsx
+        // and pass the theme directly to generateImage.
+        if (theme.trim()) onGenerate({ mode: 'prompt', value: theme, aspectRatio: selectedRatio });
         break;
       case 'prompt':
         if (prompt.trim()) onGenerate({ mode, value: prompt, aspectRatio: selectedRatio });
@@ -83,7 +85,8 @@ export const ThemeInputForm: React.FC<ThemeInputFormProps> = ({ onGenerate, isLo
     const randomTheme = inspirationalThemes[Math.floor(Math.random() * inspirationalThemes.length)];
     setTheme(randomTheme);
     setMode('theme');
-    onGenerate({ mode: 'theme', value: randomTheme, aspectRatio: selectedRatio });
+    // Also sending as 'prompt' here to treat random theme directly as the prompt
+    onGenerate({ mode: 'prompt', value: randomTheme, aspectRatio: selectedRatio });
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
