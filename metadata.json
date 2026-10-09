@@ -1,5 +1,8 @@
 {
   "name": "Inspira Arte: Gerador de Imagens Positivas",
-  "description": "Uma aplicação que gera uma imagem visualmente atraente e de alta qualidade contendo uma frase positiva (citação ou aforismo) perfeitamente alinhada com o tema fornecido pelo usuário.",
-  "requestFramePermissions": []
+  "description": "Estúdio profissional de criação de logotipos personalizadas, imagens de alto impacto com frases em múltiplos sentimentos (raiva, sátira, cômico, direto, amoroso) e paletas de cores complementares.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

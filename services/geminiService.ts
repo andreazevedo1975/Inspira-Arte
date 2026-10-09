@@ -1,172 +1,264 @@
+import type { VisualIdentityPayload } from '../types';
 
-import { GoogleGenAI, Type } from "@google/genai";
-import type { QuoteAndPrompt, VisualIdentityPayload } from '../types';
-
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set.");
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-export const generateImagePromptFromTheme = async (theme: string): Promise<string> => {
-    // UPDATED: Removed instruction to include text inside the image. This reduces "Responsible AI" blocks.
-    const systemInstruction = `Your task is to create a detailed, high-quality image prompt in ENGLISH based on a single theme word or phrase provided in Portuguese. The prompt should be for an advanced AI image generator (like Imagen).
-It must include:
-- A central concept that metaphorically represents the theme.
-- A specific visual style (e.g., Photography, Digital Painting, Watercolor, Cinematic).
-- A color palette that matches the theme's mood.
-- Quality keywords like "ultra detailed, 8k, volumetric lighting, cinematic lighting, photorealistic".
-- DO NOT ask for text, words, or letters to be written in the image. The image should be purely visual.
-Return ONLY the prompt text, without any other explanation or markdown.`;
-
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Theme: ${theme}`,
-        config: { systemInstruction, temperature: 0.8 }
-    });
-    return response.text.trim();
-};
-
-export const generateQuoteFromImage = async (base64Image: string, mimeType: string): Promise<string> => {
-    const systemInstruction = `You are a poet and philosopher. Analyze the provided image and write a single, short, profound, and inspiring quote in PORTUGUESE that captures the essence of the image. The quote should be concise and impactful, suitable for being overlaid on the image. Return ONLY the quote text, without quotation marks or any other explanation.`;
-    
-    const imagePart = {
-      inlineData: { data: base64Image, mimeType: mimeType },
-    };
-    const textPart = { text: "Escreva uma frase para esta imagem." };
-
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: { parts: [imagePart, textPart] },
-        config: { systemInstruction, temperature: 0.7 }
-    });
-    return response.text.trim();
-};
-
-
-export const generateImage = async (prompt: string, aspectRatio: string = '16:9'): Promise<string> => {
+export const generateImagePromptFromTheme = async (
+  theme: string,
+  style?: string,
+  mood?: string
+): Promise<string> => {
   try {
-    const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: prompt,
-        config: {
-          numberOfImages: 1,
-          outputMimeType: 'image/jpeg',
-          aspectRatio: aspectRatio,
-          // @ts-ignore - safetySettings are supported by the API but might not be in the strict type definition yet
-          safetySettings: [
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
-          ]
-        },
+    const res = await fetch('/api/generate-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme, style, mood }),
     });
 
-    if (response.generatedImages && response.generatedImages.length > 0) {
-        return response.generatedImages[0].image.imageBytes;
-    } else {
-        throw new Error("Nenhuma imagem foi gerada.");
+    if (!res.ok) {
+      throw new Error(`Falha ao gerar prompt: ${res.statusText}`);
     }
+
+    const data = await res.json();
+    return data.prompt || `Masterpiece representing ${theme}, ${style || 'cinematic'}, volumetric lighting, 8k`;
   } catch (error) {
-    console.error("Erro ao gerar imagem:", error);
-    throw new Error("Não foi possível gerar a imagem. Tente um tema diferente.");
+    console.error('generateImagePromptFromTheme error:', error);
+    return `Artistic visual representing ${theme}, beautiful illumination, inspirational atmosphere, high resolution`;
   }
 };
 
-export const generateImageVariations = async (prompt: string, aspectRatio: string = '1:1'): Promise<string[]> => {
+export const generateQuoteFromImage = async (
+  base64Image?: string,
+  mimeType?: string,
+  theme?: string,
+  tone?: string
+): Promise<string> => {
   try {
-    const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: prompt,
-        config: {
-          numberOfImages: 3, // Request 3 variations
-          outputMimeType: 'image/jpeg',
-          aspectRatio: aspectRatio,
-          // @ts-ignore
-          safetySettings: [
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
-          ]
-        },
-    });
+    let resolvedImage = base64Image;
 
-    if (response.generatedImages && response.generatedImages.length > 0) {
-        return response.generatedImages.map(img => `data:image/jpeg;base64,${img.image.imageBytes}`);
-    } else {
-        throw new Error("Nenhuma variação foi gerada.");
-    }
-  } catch (error) {
-    console.error("Erro ao gerar variações:", error);
-    throw new Error("Não foi possível gerar variações. O conteúdo pode ter sido filtrado.");
-  }
-};
-
-export const generateVisualIdentity = async (base64Image: string, mimeType: string, description: string): Promise<VisualIdentityPayload> => {
-    const systemInstruction = `You are a world-class branding and design expert. Your task is to analyze an uploaded image and a project description to create a cohesive visual identity.
-    Based on the user's image and description, you must generate:
-    1.  **Brand Name:** A creative and fitting name for the project/business.
-    2.  **Slogan:** A short, memorable tagline.
-    3.  **Color Palette:** Extract a primary, a secondary, and an accent color from the image. Provide them as HEX codes.
-    4.  **Mascot Prompt:** A detailed, high-quality prompt in ENGLISH for an image generation model. CRITICALLY, you must first identify the artistic style of the uploaded image (e.g., 'photorealistic', 'watercolor painting', 'pixel art', 'line art'). The mascot prompt you create MUST use this same artistic style to ensure visual consistency. The mascot should be cute, appealing, and its colors should align with the generated color palette. Include quality keywords like "centered, high resolution, 4k".
-  
-    You MUST return the response in the specified JSON format.`;
-  
-    const visualIdentitySchema = {
-      type: Type.OBJECT,
-      properties: {
-        brandName: { type: Type.STRING, description: "A creative brand name." },
-        slogan: { type: Type.STRING, description: "A memorable slogan or tagline." },
-        colorPalette: {
-          type: Type.OBJECT,
-          properties: {
-            primary: { type: Type.STRING, description: "Primary color HEX code (e.g., '#FFFFFF')." },
-            secondary: { type: Type.STRING, description: "Secondary color HEX code." },
-            accent: { type: Type.STRING, description: "Accent color HEX code." },
-          },
-          required: ['primary', 'secondary', 'accent']
-        },
-        mascotPrompt: { type: Type.STRING, description: "A detailed prompt in English to generate a mascot image." }
-      },
-      required: ['brandName', 'slogan', 'colorPalette', 'mascotPrompt']
-    };
-    
-    const imagePart = {
-      inlineData: {
-        data: base64Image,
-        mimeType: mimeType,
-      },
-    };
-  
-    const textPart = {
-      text: `Project Description: ${description}`,
-    };
-  
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: { parts: [imagePart, textPart] },
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: visualIdentitySchema,
-          temperature: 0.7
-        }
-      });
-  
-      const jsonText = response.text.trim();
-      const parsed = JSON.parse(jsonText);
-  
-      if (parsed.brandName && parsed.slogan && parsed.colorPalette && parsed.mascotPrompt) {
-        return parsed as VisualIdentityPayload;
-      } else {
-        throw new Error("Invalid response format from API for visual identity.");
+    // Convert blob: url to base64 if needed
+    if (resolvedImage && resolvedImage.startsWith('blob:')) {
+      try {
+        const resp = await fetch(resolvedImage);
+        const blob = await resp.blob();
+        resolvedImage = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (convErr) {
+        console.warn('Could not convert blob URL to base64:', convErr);
       }
-  
-    } catch (error) {
-      console.error("Error generating visual identity:", error);
-      throw new Error("Failed to generate visual identity.");
     }
+
+    const res = await fetch('/api/generate-quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        base64Image: resolvedImage,
+        mimeType: mimeType || 'image/png',
+        theme,
+        tone: tone || 'Inspirador e Encorajador',
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Falha ao gerar frase: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.quote || 'Acredite no potencial infinito dos seus sonhos e transforme cada obstáculo em degrau.';
+  } catch (error) {
+    console.error('generateQuoteFromImage error:', error);
+    return 'Acredite no potencial infinito dos seus sonhos e transforme cada obstáculo em degrau.';
+  }
+};
+
+export const generateImage = async (
+  prompt: string,
+  aspectRatio: string = '1:1',
+  themeHint: string = ''
+): Promise<string> => {
+  try {
+    const res = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, aspectRatio, themeHint }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.imageBase64) {
+        return data.imageBase64;
+      }
+      if (data.imageUrl && data.imageUrl.startsWith('data:')) {
+        return data.imageUrl.replace(/^data:[^;]+;base64,/, '');
+      }
+      if (data.imageUrl && data.imageUrl.startsWith('http')) {
+        try {
+          const imgResp = await fetch(data.imageUrl);
+          const blob = await imgResp.blob();
+          return await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const b64 = ((reader.result as string) || '').replace(/^data:[^;]+;base64,/, '');
+              resolve(b64);
+            };
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('generateImage fetch notice:', error);
+  }
+
+  // Zero-failure procedural SVG base64
+  const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+    <defs>
+      <radialGradient id="g" cx="50%" cy="35%" r="75%">
+        <stop offset="0%" stop-color="#8B5CF6"/>
+        <stop offset="50%" stop-color="#EC4899"/>
+        <stop offset="100%" stop-color="#080B11"/>
+      </radialGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <circle cx="512" cy="380" r="140" fill="#F59E0B" opacity="0.8"/>
+    <circle cx="512" cy="380" r="80" fill="#FFFFFF" opacity="0.95"/>
+    <path d="M0 700 L280 540 L512 660 L760 500 L1024 660 L1024 1024 L0 1024 Z" fill="#080B11" opacity="0.95"/>
+  </svg>`;
+  return btoa(unescape(encodeURIComponent(fallbackSvg)));
+};
+
+export const generateImageVariations = async (
+  prompt: string,
+  aspectRatio: string = '1:1'
+): Promise<string[]> => {
+  try {
+    const res = await fetch('/api/generate-variations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, aspectRatio }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Erro de variações: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.variations || [];
+  } catch (error) {
+    console.error('generateImageVariations error:', error);
+    return [];
+  }
+};
+
+export const generateVisualIdentity = async (
+  base64Image: string,
+  mimeType: string,
+  description: string
+): Promise<VisualIdentityPayload & { mascotImageUrl: string }> => {
+  try {
+    const res = await fetch('/api/generate-identity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64Image, mimeType, description }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch (error) {
+    console.warn('generateVisualIdentity network notice:', error);
+  }
+
+  // Graceful fallback brand kit
+  return {
+    brandName: 'Aura Criativa',
+    slogan: 'Inovação que inspira e transforma.',
+    story: 'Uma marca contemporânea criada para conectar propósitos e despertar o melhor potencial de sua comunidade.',
+    colorPalette: {
+      primary: '#7C3AED',
+      secondary: '#EC4899',
+      accent: '#F59E0B',
+      background: '#0F172A',
+    },
+    mascotPrompt: 'A friendly charming mascot, vibrant 3D character',
+    mascotImageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80',
   };
+};
+
+export const generateLogoStrategy = async (
+  brandName: string,
+  slogan: string,
+  industry: string,
+  style: string
+): Promise<any> => {
+  try {
+    const res = await fetch('/api/generate-logo-design', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brandName, slogan, industry, style }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Erro ao gerar estratégia de logotipo: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error('generateLogoStrategy error:', error);
+    return {
+      conceptName: `Marca ${brandName}`,
+      designRationale: 'Conceito visual estruturado com geometria de alta pregnância e contraste marcante para garantir legibilidade e memorabilidade imediata.',
+      suggestedColors: {
+        primary: '#8B5CF6',
+        secondary: '#EC4899',
+        accent: '#F59E0B',
+        background: '#080B11',
+      },
+      symbolId: 'lotus-star',
+      fontFamily: "'Playfair Display', serif",
+      layout: 'vertical',
+    };
+  }
+};
+
+export const generateComplementaryPalette = async (
+  mode: 'theme' | 'image',
+  value: string,
+  base64Image?: string,
+  mimeType?: string,
+  harmonyType: string = 'complementary'
+): Promise<any> => {
+  try {
+    const res = await fetch('/api/generate-complementary-palette', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, value, base64Image, mimeType, harmonyType }),
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('generateComplementaryPalette network notice:', error);
+  }
+
+  // Guaranteed fallback palette
+  return {
+    title: `Paleta Complementar - ${value || 'Harmonia'}`,
+    harmonyType,
+    source: mode,
+    sourceValue: value || 'Design Inspirador',
+    description: 'Paleta cromática desenvolvida através dos princípios da roda de cores e contraste perceptual.',
+    colors: [
+      { hex: '#8B5CF6', name: 'Violeta Cósmico', role: 'Dominante / Base', rgb: 'rgb(139, 92, 246)', hsl: 'hsl(258, 90%, 66%)', isLight: false },
+      { hex: '#10B981', name: 'Esmeralda Vibrante', role: 'Complementar Direta', rgb: 'rgb(16, 185, 129)', hsl: 'hsl(161, 84%, 39%)', isLight: false },
+      { hex: '#F59E0B', name: 'Âmbar Dourado', role: 'Acento Dinâmico', rgb: 'rgb(245, 158, 11)', hsl: 'hsl(38, 92%, 50%)', isLight: true },
+      { hex: '#EDE9FE', name: 'Luz de Lavanda', role: 'Superfície / Destaque', rgb: 'rgb(237, 233, 254)', hsl: 'hsl(250, 78%, 96%)', isLight: true },
+      { hex: '#090D16', name: 'Obsidiana Noturna', role: 'Profundidade / Fundo', rgb: 'rgb(9, 13, 22)', hsl: 'hsl(222, 42%, 6%)', isLight: false },
+    ],
+  };
+};
+
